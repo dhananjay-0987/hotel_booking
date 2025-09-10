@@ -15,7 +15,6 @@ class HotelUser(User):
         db_table = "hotel_user"
    
 
-
 class HotelVendor(User):
     phone_number =  models.CharField(unique = True, max_length= 100)
     business_name = models.CharField(max_length = 100)
@@ -25,9 +24,7 @@ class HotelVendor(User):
     is_verified = models.BooleanField(default = False)
     class Meta:
         db_table = "hotel_vendor"
-    # def __str__(self):
-    #     return self.user.username
-
+   
 
 class Ameneties(models.Model):
     name = models.CharField(max_length = 200)
