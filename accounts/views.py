@@ -9,6 +9,7 @@ import random
 from django.contrib.auth.decorators import login_required
 from .utils import generateSlug
 from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_protect
 
 # Create your views here.
 def login_page(request):    
@@ -79,14 +80,37 @@ def register(request):
 
 def verify_email_token(request, token):
     try:
-        hotel_user = HotelUser.objects.get(email_token = token)
-        hotel_user.is_verified = True
-        hotel_user.save()
-        messages.success(request, "Email verified")
+        # Try to find user in HotelUser model
+        try:
+            user = HotelUser.objects.get(email_token=token)
+        except HotelUser.DoesNotExist:
+            # If not found, try HotelVendor model
+            try:
+                user = HotelVendor.objects.get(email_token=token)
+            except HotelVendor.DoesNotExist:
+                messages.error(request, "Invalid verification token")
+                return redirect('/account/login/')
+
+        # Check if already verified
+        if user.is_verified:
+            messages.info(request, "Email already verified")
+            return redirect('/account/login/')
+
+        # Verify the user
+        user.is_verified = True
+        user.email_token = None  # Clear token after verification
+        user.save()
+
+        messages.success(request, "Email verified successfully")
+        
+        # Redirect based on user type
+        if isinstance(user, HotelVendor):
+            return redirect('/account/login-vendor/')
         return redirect('/account/login/')
+
     except Exception as e:
-        return HttpResponse("Invalid Token")
-    
+        messages.error(request, f"Verification failed: {str(e)}")
+        return redirect('/account/login/')
 
 
 
@@ -149,7 +173,7 @@ def login_vendor(request):
         return redirect('/account/login-vendor/')
     return render(request, 'vendor/login_vendor.html')
 
-
+@csrf_protect
 def register_vendor(request):
     if request.method == "POST":
 
